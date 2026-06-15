@@ -4,8 +4,3 @@
 [functions]
   node_bundler = "esbuild"
 
-[[redirects]]
-  from = "/api/patterns"
-  to = "/.netlify/functions/patterns"
-  status = 200
-  force = true

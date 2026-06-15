@@ -27,8 +27,8 @@ const HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-function respond(statusCode, body) {
-  return { statusCode, headers: HEADERS, body: JSON.stringify(body) };
+function respond(status, body) {
+  return new Response(JSON.stringify(body), { status, headers: HEADERS });
 }
 
 async function getPatterns(store) {
@@ -40,13 +40,6 @@ async function getPatterns(store) {
     interactionLogFile: null,
     ...p,
   }));
-}
-
-function cleanPoint(point) {
-  return {
-    x: Math.max(0, Math.min(22, Math.floor(Number(point?.x) || 0))),
-    y: Math.max(0, Math.min(22, Math.floor(Number(point?.y) || 0))),
-  };
 }
 
 function cleanPattern(input) {
@@ -84,22 +77,22 @@ function cleanPattern(input) {
   };
 }
 
-export const handler = async (event) => {
-  if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 204, headers: HEADERS, body: "" };
+export default async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("", { status: 204, headers: HEADERS });
   }
 
   const store = getStore({ name: "patterns", consistency: "strong" });
 
-  if (event.httpMethod === "GET") {
+  if (req.method === "GET") {
     const patterns = await getPatterns(store);
     return respond(200, patterns);
   }
 
-  if (event.httpMethod === "POST") {
+  if (req.method === "POST") {
     let body;
     try {
-      body = JSON.parse(event.body || "{}");
+      body = await req.json();
     } catch {
       return respond(400, { error: "Invalid JSON." });
     }
@@ -112,4 +105,8 @@ export const handler = async (event) => {
   }
 
   return respond(405, { error: "Method not allowed." });
+};
+
+export const config = {
+  path: "/api/patterns",
 };
