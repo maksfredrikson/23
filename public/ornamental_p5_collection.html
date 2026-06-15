@@ -1615,19 +1615,23 @@
       };
       // Touch handlers only mutate state; the draw loop above does all rendering.
       // Returning false triggers preventDefault so the page never scrolls/zooms.
+      const onCanvas = () => p.mouseX >= 0 && p.mouseX <= p.width && p.mouseY >= 0 && p.mouseY <= p.height;
       p.touchStarted = () => {
         if (screens.breathe.classList.contains("hidden")) return;
+        if (!onCanvas()) return;
         ignoreMouseUntil = performance.now() + 700;
         strokeStart(p);
         return false;
       };
       p.touchMoved = () => {
         if (screens.breathe.classList.contains("hidden")) return;
+        if (!onCanvas()) return;
         ignoreMouseUntil = performance.now() + 700;
         strokeMoveTo(p);
         return false;
       };
       p.touchEnded = () => {
+        if (!onCanvas()) return;
         ignoreMouseUntil = performance.now() + 700;
         strokeEnd();
         return false;
