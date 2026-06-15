@@ -1262,12 +1262,18 @@
         }
         const r = distance((x + .5) / N, (y + .5) / N, circleCenter.x, circleCenter.y) * N;
         const gate = Math.max(0, 1 - Math.max(0, r - radiusLimit) / softness);
-        heat[y][x] *= Math.pow(gate > 0 ? .91 : .78, dt * 60);
         if (pixels[y][x]) {
-          heat[y][x] = Math.max(heat[y][x], .72 + info.radius * .2);
+          heat[y][x] = Math.max(heat[y][x] * Math.pow(gate > 0 ? .91 : .78, dt * 60), .72 + info.radius * .2);
           continue;
         }
-        if (info.phase !== "inhale") continue;
+        if (info.phase !== "inhale") {
+          // Exhale: recede the glow with the shrinking circle AND the breath
+          // amplitude, so the scale-down eases across the whole exhale (the
+          // preset's second number) instead of collapsing in a fixed ~1s.
+          heat[y][x] = Math.min(heat[y][x], gate * info.radius);
+          continue;
+        }
+        heat[y][x] *= Math.pow(gate > 0 ? .91 : .78, dt * 60);
         if (gate <= 0) continue;
         const dSeed = sourceDistance(x, y);
         const reach = Math.max(1, radiusLimit + softness * 1.5);
