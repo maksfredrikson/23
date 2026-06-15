@@ -358,9 +358,28 @@
   .feedback {
     min-height:100vh;
     display:flex;
+    flex-direction:column;
     align-items:center;
     justify-content:center;
     padding:56px 32px 40px;
+    gap:28px;
+  }
+  .feedback-header {
+    width:100%;
+    max-width:760px;
+  }
+  .feedback-title {
+    margin:0;
+    font-size:clamp(1.4rem,3.5vw,2rem);
+    font-weight:300;
+    letter-spacing:-.03em;
+    color:var(--foreground);
+  }
+  .feedback-subtitle {
+    margin:4px 0 0;
+    font-size:13px;
+    color:rgba(255,255,255,.42);
+    font-weight:400;
   }
   .feedback-grid {
     width:100%;
@@ -641,14 +660,16 @@
   </section>
 
   <section id="feedback-screen" class="screen feedback hidden">
+    <div class="feedback-header">
+      <p id="feedback-title" class="feedback-title">Resonance</p>
+      <p id="feedback-meta" class="feedback-subtitle">0 breaths</p>
+    </div>
     <div class="feedback-grid">
       <div>
         <div id="feedback-preview" class="final-preview" aria-label="Completed ornamental pattern preview"></div>
-        <p id="feedback-meta" class="practice-meta">Resonance · 0 breaths</p>
         <pre id="feedback-ascii" class="ascii hidden"></pre>
       </div>
       <form id="publish-form" class="form-panel">
-        <p id="publish-pattern" class="eyebrow">Resonance</p>
         <input id="title-input" class="line-input" type="text" placeholder="Title (optional)" autocomplete="off">
         <textarea id="description-input" class="line-textarea" placeholder="Describe your practice... (optional)"></textarea>
         <button id="share-toggle" class="toggle-row" type="button">
@@ -714,10 +735,11 @@
   const sessionTimer = $("#session-timer");
   const tapPrompt = $("#tap-prompt");
   const canvasHint = $("#canvas-hint");
+  const feedbackTitle = $("#feedback-title");
   const feedbackMeta = $("#feedback-meta");
   const feedbackPreview = $("#feedback-preview");
   const feedbackAscii = $("#feedback-ascii");
-  const publishPattern = $("#publish-pattern");
+
   const publishForm = $("#publish-form");
   const publishedPanel = $("#published-panel");
   const titleInput = $("#title-input");
@@ -1029,8 +1051,8 @@
 
   endButton.addEventListener("click", () => {
     running = false;
-    publishPattern.textContent = patternName(selectedPattern);
-    feedbackMeta.textContent = `${patternName(selectedPattern)} · ${breathCountText()}`;
+    feedbackTitle.textContent = patternName(selectedPattern);
+    feedbackMeta.textContent = breathCountText();
     feedbackAscii.textContent = displayAscii(gridToAscii());
     renderFinalPreview();
     publishForm.classList.remove("hidden");
