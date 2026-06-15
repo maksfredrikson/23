@@ -1273,15 +1273,6 @@
 
     for (let y = 0; y < N; y++) {
       for (let x = 0; x < N; x++) {
-        if (symmetrySettling) {
-          if (pixels[y][x]) {
-            heat[y][x] = 0.72 + info.radius * 0.2;
-          } else {
-            heat[y][x] *= Math.pow(0.52, dt * 60);
-            if (heat[y][x] < 0.03) heat[y][x] = 0;
-          }
-          continue;
-        }
         const r = distance((x + .5) / N, (y + .5) / N, circleCenter.x, circleCenter.y) * N;
         const gate = Math.max(0, 1 - Math.max(0, r - radiusLimit) / softness);
         if (pixels[y][x]) {
