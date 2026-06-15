@@ -693,17 +693,15 @@
 </main>
 
 <div id="evolution-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="evolution-title">
-  <div class="modal-wrap">
-    <div class="modal-header">
+  <div class="modal-panel">
+    <div class="modal-top">
       <div>
         <p id="evolution-title" class="modal-title">Pattern evolution</p>
         <p id="evolution-meta" class="modal-meta"></p>
       </div>
       <button id="evolution-close" class="modal-close" type="button" aria-label="Close preview">×</button>
     </div>
-    <div class="modal-panel">
-      <div id="evolution-preview" class="evolution-preview" aria-label="Animated pattern evolution preview"></div>
-    </div>
+    <div id="evolution-preview" class="evolution-preview" aria-label="Animated pattern evolution preview"></div>
   </div>
 </div>
 
@@ -925,7 +923,6 @@
           <span class="info-button" role="button" tabindex="0" aria-label="Preview pattern evolution">i</span>
         </span>
         <span class="card-text">
-          <p class="card-name">${escapeHtml(item.title || "Untitled")}</p>
           <p class="card-tag">${escapeHtml(patternName(item.patternId))}</p>
           <p class="card-breaths">${escapeHtml(breathCountFromSeconds(item.durationSeconds, item.patternId, item.inhale, item.exhale))}</p>
         </span>
