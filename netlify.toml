@@ -1,6 +1,5 @@
 [build]
   publish = "."
-  command = "pnpm install --no-frozen-lockfile"
 
 [functions]
   node_bundler = "esbuild"
