@@ -1309,7 +1309,7 @@
     if (!symmetrySettling && isPerfectSymmetric()) {
       symmetrySettling = true;
       const remainingCycle = cycle - (elapsed % cycle || cycle);
-      settleUntil = elapsed + (remainingCycle > 0.001 ? remainingCycle : cycle);
+      settleUntil = elapsed + (remainingCycle > 0.001 ? remainingCycle : cycle) + cycle;
     }
     if (endingThisFrame) {
       elapsed = settleUntil;
