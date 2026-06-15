@@ -1247,7 +1247,7 @@
     if (!symmetrySettling && isPerfectSymmetric()) {
       symmetrySettling = true;
       const remainingCycle = cycle - (previousElapsed % cycle || cycle);
-      settleUntil = previousElapsed + (remainingCycle > 0.001 ? remainingCycle : cycle);
+      settleUntil = previousElapsed + (remainingCycle > 0.001 ? remainingCycle : cycle) + cycle;
     }
     const endingThisFrame = symmetrySettling && settleUntil > 0 && previousElapsed + dt >= settleUntil;
     elapsed = endingThisFrame ? Math.max(previousElapsed, settleUntil - 0.001) : previousElapsed + dt;
