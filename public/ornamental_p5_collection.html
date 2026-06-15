@@ -1435,13 +1435,14 @@
     p.noStroke();
     p.push();
     p.translate(pad, pad);
-    const durations = selectedDurations();
-    const pulseCycle = durations.inhale + durations.exhale;
+    // Breath amplitude follows the selected preset's asymmetric inhale/exhale
+    // split (phaseInfo), so the dot pulse stays in step with each cycle.
+    const breath = allowPulse && running ? phaseInfo().radius : 0;
     for (let y = 0; y < N; y++) {
       for (let x = 0; x < N; x++) {
         const base = grid[y][x];
         const h = heatGrid ? heatGrid[y][x] : base;
-        const pulse = base && allowPulse && running ? .15 + .12 * Math.sin((elapsed / pulseCycle) * Math.PI * 2 + x * .7 + y * .45) : 0;
+        const pulse = base ? breath * (.22 + .08 * Math.sin(x * .7 + y * .45)) : 0;
         const scale = Math.max(0, Math.min(1, h + pulse));
         if (scale <= .08) continue;
         const cx = x * cell + cell / 2;
