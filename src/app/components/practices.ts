@@ -16,8 +16,8 @@ export const BREATHING_PATTERNS: Record<PatternId, BreathingPattern> = {
   resonance: {
     id: "resonance",
     name: "Resonance",
-    inhale: 5.5,
-    exhale: 5.5,
+    inhale: 5,
+    exhale: 5,
     glowColor: "rgba(100, 160, 255, 0.9)",
     textColor: "rgba(130, 180, 255, 1)",
   },

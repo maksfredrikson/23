@@ -795,9 +795,16 @@
     return breathCountFromSeconds(elapsed, selectedPattern, Number(inhaleInput.value), Number(exhaleInput.value));
   }
 
+  function selectedDurations() {
+    const preset = presets[selectedPattern] || presets.resonance;
+    return {
+      inhale:Math.max(1, Number(inhaleInput.value) || preset.inhale),
+      exhale:Math.max(1, Number(exhaleInput.value) || preset.exhale)
+    };
+  }
+
   function cycleDuration() {
-    const inhale = Math.max(1, Number(inhaleInput.value) || presets[selectedPattern].inhale);
-    const exhale = Math.max(1, Number(exhaleInput.value) || presets[selectedPattern].exhale);
+    const { inhale, exhale } = selectedDurations();
     return inhale + exhale;
   }
 
@@ -1075,8 +1082,7 @@
   });
 
   function phaseInfo() {
-    const inhale = Math.max(1, Number(inhaleInput.value) || 5);
-    const exhale = Math.max(1, Number(exhaleInput.value) || 5);
+    const { inhale, exhale } = selectedDurations();
     const cycle = inhale + exhale;
     const local = elapsed % cycle;
     if (local < inhale) {
@@ -1198,7 +1204,8 @@
   function updateState(dt) {
     if (!running) return;
     const previousElapsed = elapsed;
-    const cycle = Math.max(1, (Number(inhaleInput.value) || 5) + (Number(exhaleInput.value) || 5));
+    const durations = selectedDurations();
+    const cycle = durations.inhale + durations.exhale;
     if (!symmetrySettling && isPerfectSymmetric()) {
       symmetrySettling = true;
       const remainingCycle = cycle - (previousElapsed % cycle || cycle);
@@ -1218,7 +1225,7 @@
     const large = 12;
     const radiusLimit = small + (large - small) * info.radius;
     const softness = 1.25;
-    const inhaleDuration = Math.max(1, Number(inhaleInput.value) || 5);
+    const inhaleDuration = durations.inhale;
     const previousCycleTime = previousElapsed % cycle;
     const localCycleTime = elapsed % cycle;
     const phaseAngle = (elapsed / cycle) * Math.PI * 2;
@@ -1426,11 +1433,13 @@
     p.noStroke();
     p.push();
     p.translate(pad, pad);
+    const durations = selectedDurations();
+    const pulseCycle = durations.inhale + durations.exhale;
     for (let y = 0; y < N; y++) {
       for (let x = 0; x < N; x++) {
         const base = grid[y][x];
         const h = heatGrid ? heatGrid[y][x] : base;
-        const pulse = base && allowPulse && running ? .15 + .12 * Math.sin((elapsed / Math.max(1, Number(inhaleInput.value) + Number(exhaleInput.value))) * Math.PI * 2 + x * .7 + y * .45) : 0;
+        const pulse = base && allowPulse && running ? .15 + .12 * Math.sin((elapsed / pulseCycle) * Math.PI * 2 + x * .7 + y * .45) : 0;
         const scale = Math.max(0, Math.min(1, h + pulse));
         if (scale <= .08) continue;
         const cx = x * cell + cell / 2;
