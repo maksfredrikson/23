@@ -192,10 +192,10 @@
   .card-text { margin-top:10px; width:100%; }
   .card-tag {
     margin:2px 0 0;
-    font-size:11px;
-    color:rgba(255,255,255,.28);
-    font-weight:400;
-    letter-spacing:0;
+    font-size:13px;
+    color:rgba(255,255,255,.65);
+    font-weight:500;
+    letter-spacing:-.01em;
     text-transform:none;
   }
   .card-breaths {
@@ -523,6 +523,18 @@
     padding:22px;
     box-shadow:0 24px 80px rgba(0,0,0,.42);
   }
+  .modal-wrap {
+    display:flex;
+    flex-direction:column;
+    width:min(560px,100%);
+  }
+  .modal-header {
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:20px;
+    margin-bottom:12px;
+  }
   .modal-top {
     display:flex;
     justify-content:space-between;
@@ -647,6 +659,7 @@
           </span>
         </button>
         <button id="publish-button" class="primary-pill" type="submit">Publish</button>
+        <button id="restart-button" class="subtle-pill" type="button">Restart</button>
       </form>
       <div id="published-panel" class="form-panel hidden">
         <p class="eyebrow">Published</p>
@@ -659,15 +672,17 @@
 </main>
 
 <div id="evolution-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="evolution-title">
-  <div class="modal-panel">
-    <div class="modal-top">
+  <div class="modal-wrap">
+    <div class="modal-header">
       <div>
         <p id="evolution-title" class="modal-title">Pattern evolution</p>
         <p id="evolution-meta" class="modal-meta"></p>
       </div>
       <button id="evolution-close" class="modal-close" type="button" aria-label="Close preview">×</button>
     </div>
-    <div id="evolution-preview" class="evolution-preview" aria-label="Animated pattern evolution preview"></div>
+    <div class="modal-panel">
+      <div id="evolution-preview" class="evolution-preview" aria-label="Animated pattern evolution preview"></div>
+    </div>
   </div>
 </div>
 
@@ -710,6 +725,7 @@
   const publishButton = $("#publish-button");
   const shareToggle = $("#share-toggle");
   const againButton = $("#again-button");
+  const restartButton = $("#restart-button");
   const publishedTitle = $("#published-title");
   const publishedCopy = $("#published-copy");
   const evolutionModal = $("#evolution-modal");
@@ -1038,6 +1054,12 @@
     showScreen("select");
   });
 
+  restartButton.addEventListener("click", () => {
+    selectedPractice = null;
+    sourcePractice = null;
+    showScreen("select");
+  });
+
   evolutionClose.addEventListener("click", closeEvolutionModal);
   evolutionModal.addEventListener("click", event => {
     if (event.target === evolutionModal) closeEvolutionModal();
@@ -1267,10 +1289,9 @@
           continue;
         }
         if (info.phase !== "inhale") {
-          // Exhale: recede the glow with the shrinking circle AND the breath
-          // amplitude, so the scale-down eases across the whole exhale (the
-          // preset's second number) instead of collapsing in a fixed ~1s.
-          heat[y][x] = Math.min(heat[y][x], gate * info.radius);
+          // Exhale: decay + cap so heat starts dropping on the very first
+          // exhale frame (no freeze at the inhale→exhale boundary).
+          heat[y][x] = Math.min(heat[y][x] * Math.pow(gate > 0 ? .993 : .78, dt * 60), gate * info.radius);
           continue;
         }
         heat[y][x] *= Math.pow(gate > 0 ? .91 : .78, dt * 60);
