@@ -15,10 +15,11 @@
     --line-strong:rgba(255,255,255,0.24);
   }
   * { box-sizing:border-box; }
-  html { background:var(--background); font-size:16px; }
+  html { background:var(--background); font-size:16px; overscroll-behavior:none; }
   body {
     margin:0;
     min-height:100vh;
+    overscroll-behavior:none;
     background:var(--background);
     color:var(--foreground);
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter","Helvetica Neue",sans-serif;
@@ -149,13 +150,14 @@
     color:inherit;
     animation:rise .38s cubic-bezier(.25,.1,.25,1) both;
   }
-  .practice-card pre {
+  .practice-card .card-canvas {
     width:100%;
-    overflow:hidden;
-    opacity:.65;
-    transition:opacity .2s ease, color .2s ease;
+    aspect-ratio:1;
+    display:block;
+    opacity:.7;
+    transition:opacity .2s ease;
   }
-  .practice-card:hover pre { opacity:1; }
+  .practice-card:hover .card-canvas { opacity:1; }
   .card-visual {
     position:relative;
     width:100%;
@@ -272,6 +274,10 @@
     display:block;
     width:100% !important;
     height:100% !important;
+    touch-action:none;
+    user-select:none;
+    -webkit-user-select:none;
+    -webkit-touch-callout:none;
   }
   .tap-prompt {
     position:absolute;
@@ -391,16 +397,16 @@
   .line-input, .line-textarea {
     width:100%;
     outline:none;
-    background:transparent;
-    border:none;
-    border-bottom:1px solid rgba(255,255,255,.1);
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:10px;
     color:rgba(255,255,255,.82);
     font-family:inherit;
     box-sizing:border-box;
-    transition:border-color .15s;
+    transition:border-color .15s, background .15s;
   }
   .line-input {
-    padding:8px 0;
+    padding:11px 13px;
     font-size:15px;
     font-weight:500;
     letter-spacing:-.01em;
@@ -408,13 +414,13 @@
   .line-textarea {
     resize:none;
     min-height:118px;
-    padding:8px 0;
+    padding:11px 13px;
     font-size:14px;
     font-weight:400;
     color:rgba(255,255,255,.7);
     line-height:1.65;
   }
-  .line-input:focus, .line-textarea:focus { border-bottom-color:rgba(255,255,255,.3); }
+  .line-input:focus, .line-textarea:focus { border-color:rgba(255,255,255,.32); background:rgba(255,255,255,.06); }
   .toggle-row {
     display:flex;
     align-items:flex-start;
@@ -631,8 +637,8 @@
       </div>
       <form id="publish-form" class="form-panel">
         <p id="publish-pattern" class="eyebrow">Resonance</p>
-        <input id="title-input" class="line-input" type="text" placeholder="Title" autocomplete="off" required>
-        <textarea id="description-input" class="line-textarea" placeholder="Describe your practice..."></textarea>
+        <input id="title-input" class="line-input" type="text" placeholder="Title (optional)" autocomplete="off">
+        <textarea id="description-input" class="line-textarea" placeholder="Describe your practice... (optional)"></textarea>
         <button id="share-toggle" class="toggle-row" type="button">
           <span class="toggle"></span>
           <span>
@@ -640,7 +646,7 @@
             <span class="toggle-copy">Session metadata shared anonymously. No personal identifiers collected.</span>
           </span>
         </button>
-        <button id="publish-button" class="primary-pill" type="submit" disabled>Publish</button>
+        <button id="publish-button" class="primary-pill" type="submit">Publish</button>
       </form>
       <div id="published-panel" class="form-panel hidden">
         <p class="eyebrow">Published</p>
@@ -726,6 +732,8 @@
   let symmetryComplete = false;
   let settleUntil = 0;
   let strokeMode = null;
+  let strokeCell = null;
+  let ignoreMouseUntil = 0;
   let shareData = true;
   let sketch = null;
   let previewSketch = null;
@@ -875,7 +883,7 @@
       button.innerHTML = `
         <span class="sr-only">Practice ID ${escapeHtml(item.id)}</span>
         <span class="card-visual">
-          <pre class="ascii" style="color:rgba(255,255,255,.72)">${displayAscii(item.ascii)}</pre>
+          <canvas class="card-canvas" aria-hidden="true"></canvas>
           <span class="info-button" role="button" tabindex="0" aria-label="Preview pattern evolution">i</span>
         </span>
         <span class="card-text">
@@ -920,6 +928,8 @@
         syncChips();
         startPractice(item);
       });
+      const cardCanvas = button.querySelector(".card-canvas");
+      if (cardCanvas) drawSolidOrnament(cardCanvas, asciiToGrid(item.ascii));
       collectionGrid.appendChild(button);
     });
   }
@@ -1011,13 +1021,11 @@
     publishedPanel.classList.add("hidden");
     titleInput.value = "";
     descriptionInput.value = "";
-    publishButton.disabled = true;
+    publishButton.disabled = false;
     showScreen("feedback");
   });
 
-  titleInput.addEventListener("input", () => {
-    publishButton.disabled = titleInput.value.trim().length === 0;
-  });
+  // Title and description are optional; Publish stays enabled.
 
   shareToggle.addEventListener("click", () => {
     shareData = !shareData;
@@ -1038,13 +1046,17 @@
     if (event.key === "Escape" && !evolutionModal.classList.contains("hidden")) closeEvolutionModal();
   });
 
+  // iOS pinch-zoom uses gesture events; block them while drawing on the canvas.
+  document.addEventListener("gesturestart", event => {
+    if (!screens.breathe.classList.contains("hidden")) event.preventDefault();
+  });
+
   publishForm.addEventListener("submit", async event => {
     event.preventDefault();
-    if (!titleInput.value.trim()) return;
     publishButton.disabled = true;
     publishButton.textContent = "Publishing";
     const payload = {
-      title:titleInput.value.trim(),
+      title:titleInput.value.trim() || "Untitled",
       description:descriptionInput.value.trim(),
       patternId:selectedPattern,
       inhale:Number(inhaleInput.value) || presets[selectedPattern].inhale,
@@ -1230,11 +1242,10 @@
     const radiusLimit = small + (large - small) * info.radius;
     const softness = 1.25;
     const phaseAngle = (elapsed / cycle) * Math.PI * 2;
-    // The prototype commits a single balancing step per breath cycle, gated by
-    // the moving circle. Fire on each cycle boundary, as the pulse begins anew.
-    const previousCycleIndex = Math.floor(previousElapsed / cycle);
-    const currentCycleIndex = Math.floor(elapsed / cycle);
-    if (!symmetrySettling && currentCycleIndex > previousCycleIndex) {
+    // Commit one balancing step per breath at peak inhale (circle at max scale),
+    // so the new dot lands as the circle reaches its widest, not at cycle start.
+    const wasInhaling = (previousElapsed % cycle) < durations.inhale;
+    if (!symmetrySettling && wasInhaling && info.phase === "exhale") {
       applySymmetryStep(radiusLimit);
     }
 
@@ -1288,32 +1299,14 @@
     syncPracticeUi();
   }
 
-  function inPoint(point) {
-    return point.x >= 0 && point.x <= 1 && point.y >= 0 && point.y <= 1;
-  }
-
-  function cellFromPoint(point) {
-    return {
-      x:Math.floor(Math.max(0, Math.min(.999, point.x)) * N),
-      y:Math.floor(Math.max(0, Math.min(.999, point.y)) * N)
-    };
-  }
-
-  function modeAt(point) {
-    if (!inPoint(point)) return "paint";
-    const cell = cellFromPoint(point);
-    return pixels[cell.y][cell.x] ? "erase" : "paint";
-  }
-
-  function paintAt(point, mode) {
-    if (!inPoint(point)) return;
-    const cell = cellFromPoint(point);
+  function paintCell(x, y, mode) {
+    if (x < 0 || x >= N || y < 0 || y >= N) return false;
     const target = mode === "erase" ? 0 : 1;
-    const previous = pixels[cell.y][cell.x];
-    pixels[cell.y][cell.x] = target;
-    heat[cell.y][cell.x] = target ? 1 : 0;
-    if (target && !previous) recordUserAddedPoint(cell);
+    if (pixels[y][x] === target) return false;
+    pixels[y][x] = target;
+    heat[y][x] = target ? 1 : 0;
     if (target) {
+      recordUserAddedPoint({ x, y });
       practiceStarted = true;
       running = true;
       symmetrySettling = false;
@@ -1332,98 +1325,56 @@
       symmetryComplete = false;
       settleUntil = 0;
     }
-    syncPracticeUi();
+    return true;
   }
 
-  function pointFromClient(clientX, clientY) {
-    const host = $("#p5-canvas");
-    const rect = host.getBoundingClientRect();
-    const side = Math.min(rect.width, rect.height) || 620;
+  // Bresenham between cells so fast finger drags never leave gaps.
+  function paintLine(x0, y0, x1, y1, mode) {
+    const dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+    const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy, x = x0, y = y0, changed = false;
+    for (;;) {
+      if (paintCell(x, y, mode)) changed = true;
+      if (x === x1 && y === y1) break;
+      const e2 = 2 * err;
+      if (e2 > -dy) { err -= dy; x += sx; }
+      if (e2 < dx) { err += dx; y += sy; }
+    }
+    return changed;
+  }
+
+  // Map the sketch pointer (mouse or first touch) to a 23x23 grid cell.
+  function cellFromSketch(p) {
+    const side = Math.min(p.width, p.height);
     const pad = side * .046;
-    const size = side - pad * 2;
+    const cell = (side - pad * 2) / N;
     return {
-      x:(clientX - rect.left - pad) / size,
-      y:(clientY - rect.top - pad) / size
+      x: Math.floor((p.mouseX - pad) / cell),
+      y: Math.floor((p.mouseY - pad) / cell)
     };
   }
 
-  function bindPointerDrawing() {
-    const host = $("#p5-canvas");
-    let ignoreMouseUntil = 0;
-    let suppressNextClick = false;
-    const beginStroke = (clientX, clientY) => {
-      if (screens.breathe.classList.contains("hidden")) return;
-      const point = pointFromClient(clientX, clientY);
-      if (!inPoint(point)) return false;
-      strokeMode = modeAt(point);
-      paintAt(point, strokeMode);
-      return true;
-    };
-    const moveStroke = (clientX, clientY) => {
-      if (!strokeMode || screens.breathe.classList.contains("hidden")) return false;
-      paintAt(pointFromClient(clientX, clientY), strokeMode);
-      return true;
-    };
-    host.addEventListener("pointerdown", event => {
-      if (!beginStroke(event.clientX, event.clientY)) return;
-      ignoreMouseUntil = performance.now() + 600;
-      suppressNextClick = true;
-      if (host.setPointerCapture) host.setPointerCapture(event.pointerId);
-      event.preventDefault();
-      event.stopPropagation();
-    }, true);
-    host.addEventListener("pointermove", event => {
-      if (!moveStroke(event.clientX, event.clientY)) return;
-      event.preventDefault();
-      event.stopPropagation();
-    }, true);
-    host.addEventListener("pointerup", event => {
-      strokeMode = null;
-      if (host.hasPointerCapture(event.pointerId)) host.releasePointerCapture(event.pointerId);
-    }, true);
-    host.addEventListener("pointercancel", () => {
-      strokeMode = null;
-    }, true);
-    host.addEventListener("mousedown", event => {
-      if (performance.now() < ignoreMouseUntil) return;
-      if (!beginStroke(event.clientX, event.clientY)) return;
-      suppressNextClick = true;
-      event.preventDefault();
-      event.stopPropagation();
-    }, true);
-    host.addEventListener("click", event => {
-      if (suppressNextClick) {
-        suppressNextClick = false;
-        return;
-      }
-      if (!beginStroke(event.clientX, event.clientY)) return;
-      strokeMode = null;
-      event.preventDefault();
-      event.stopPropagation();
-    }, true);
-    window.addEventListener("mousemove", event => {
-      if (!moveStroke(event.clientX, event.clientY)) return;
-      event.preventDefault();
-    }, true);
-    window.addEventListener("mouseup", () => {
-      strokeMode = null;
-    }, true);
-    host.addEventListener("touchstart", event => {
-      const touch = event.touches[0];
-      if (!touch || !beginStroke(touch.clientX, touch.clientY)) return;
-      suppressNextClick = true;
-      event.preventDefault();
-      event.stopPropagation();
-    }, { capture:true, passive:false });
-    host.addEventListener("touchmove", event => {
-      const touch = event.touches[0];
-      if (!touch || !moveStroke(touch.clientX, touch.clientY)) return;
-      event.preventDefault();
-      event.stopPropagation();
-    }, { capture:true, passive:false });
-    window.addEventListener("touchend", () => {
-      strokeMode = null;
-    }, true);
+  function strokeStart(p) {
+    if (screens.breathe.classList.contains("hidden")) return;
+    const cell = cellFromSketch(p);
+    const onPixel = cell.y >= 0 && cell.y < N && cell.x >= 0 && cell.x < N && pixels[cell.y][cell.x];
+    strokeMode = onPixel ? "erase" : "paint";
+    strokeCell = cell;
+    if (paintCell(cell.x, cell.y, strokeMode)) syncPracticeUi();
+  }
+
+  function strokeMoveTo(p) {
+    if (!strokeMode || screens.breathe.classList.contains("hidden")) return;
+    const cell = cellFromSketch(p);
+    const from = strokeCell || cell;
+    const changed = paintLine(from.x, from.y, cell.x, cell.y, strokeMode);
+    strokeCell = cell;
+    if (changed) syncPracticeUi();
+  }
+
+  function strokeEnd() {
+    strokeMode = null;
+    strokeCell = null;
   }
 
   function drawOrnament(p, grid, heatGrid, color, allowPulse) {
@@ -1444,9 +1395,17 @@
         const h = heatGrid ? heatGrid[y][x] : base;
         const pulse = base ? breath * (.22 + .08 * Math.sin(x * .7 + y * .45)) : 0;
         const scale = Math.max(0, Math.min(1, h + pulse));
-        if (scale <= .08) continue;
         const cx = x * cell + cell / 2;
         const cy = y * cell + cell / 2;
+        if (scale <= .08) {
+          // Faint marker shows the cell is tappable (interactive canvas only).
+          if (allowPulse) {
+            p.drawingContext.shadowBlur = 0;
+            p.fill("rgba(255,255,255,.1)");
+            p.circle(cx, cy, cell * .16);
+          }
+          continue;
+        }
         const radius = cell * (base ? .34 + scale * .08 : .08 + scale * .32);
         p.fill(color);
         p.drawingContext.shadowBlur = base ? 16 : 22;
@@ -1456,6 +1415,31 @@
     }
     p.drawingContext.shadowBlur = 0;
     p.pop();
+  }
+
+  // Static solid-dot render for home-page cards, matching the final-page style.
+  function drawSolidOrnament(canvas, grid) {
+    const buffer = 300;
+    canvas.width = buffer;
+    canvas.height = buffer;
+    const ctx = canvas.getContext("2d");
+    const pad = buffer * .046;
+    const cell = (buffer - pad * 2) / N;
+    ctx.clearRect(0, 0, buffer, buffer);
+    ctx.save();
+    ctx.translate(pad, pad);
+    ctx.fillStyle = "rgba(255,255,255,.72)";
+    ctx.shadowColor = "rgba(255,255,255,.5)";
+    ctx.shadowBlur = cell * .5;
+    for (let y = 0; y < N; y++) {
+      for (let x = 0; x < N; x++) {
+        if (!grid[y][x]) continue;
+        ctx.beginPath();
+        ctx.arc(x * cell + cell / 2, y * cell + cell / 2, cell * .42, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
   }
 
   function renderFinalPreview() {
@@ -1573,14 +1557,13 @@
 
   function ensureSketch() {
     if (sketch) return;
-    bindPointerDrawing();
     sketch = new p5(p => {
       p.setup = () => {
         const host = $("#p5-canvas");
         const side = Math.min(host.clientWidth, host.clientHeight) || 620;
         const canvas = p.createCanvas(side, side);
         canvas.parent(host);
-        p.pixelDensity(Math.min(2, window.devicePixelRatio || 1));
+        p.pixelDensity(1);
       };
       p.draw = () => {
         const now = performance.now();
@@ -1591,9 +1574,38 @@
         const host = $("#p5-canvas");
         const side = Math.min(host.clientWidth, host.clientHeight) || 620;
         if (p.width !== side) p.resizeCanvas(side, side);
-        const color = "rgba(255,255,255,.82)";
-
-        drawOrnament(p, pixels, heat, color, true);
+        drawOrnament(p, pixels, heat, "rgba(255,255,255,.82)", true);
+      };
+      // Touch handlers only mutate state; the draw loop above does all rendering.
+      // Returning false triggers preventDefault so the page never scrolls/zooms.
+      p.touchStarted = () => {
+        if (screens.breathe.classList.contains("hidden")) return;
+        ignoreMouseUntil = performance.now() + 700;
+        strokeStart(p);
+        return false;
+      };
+      p.touchMoved = () => {
+        if (screens.breathe.classList.contains("hidden")) return;
+        ignoreMouseUntil = performance.now() + 700;
+        strokeMoveTo(p);
+        return false;
+      };
+      p.touchEnded = () => {
+        ignoreMouseUntil = performance.now() + 700;
+        strokeEnd();
+        return false;
+      };
+      p.mousePressed = () => {
+        if (performance.now() < ignoreMouseUntil) return;
+        strokeStart(p);
+      };
+      p.mouseDragged = () => {
+        if (performance.now() < ignoreMouseUntil) return;
+        strokeMoveTo(p);
+      };
+      p.mouseReleased = () => {
+        if (performance.now() < ignoreMouseUntil) return;
+        strokeEnd();
       };
     });
   }
