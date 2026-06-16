@@ -1,7 +1,3 @@
-import { connectLambda, getStore } from "@netlify/blobs";
-
-const STORE_KEY = "all";
-
 const seed = [
   {
     id: "pattern-1781559391030-56e5d9",
@@ -75,63 +71,25 @@ function respond(statusCode, body) {
   return { statusCode, headers: HEADERS, body: JSON.stringify(body) };
 }
 
-function connectStore(event) {
-  try {
-    connectLambda(event);
-    return getStore({ name: "patterns", consistency: "strong" });
-  } catch {
-    return null;
-  }
+async function getPatterns() {
+  return memoryPatterns.map(p => ({
+    sourcePracticeId: null,
+    lineage: [],
+    interactionLogFile: null,
+    ...p,
+  }));
 }
 
-async function getPatterns(store) {
-  if (!store) return memoryPatterns;
-  try {
-    const raw = await store.get(STORE_KEY, { type: "text" });
-    if (!raw) return seed;
-    return JSON.parse(raw).map(p => ({
-      sourcePracticeId: null,
-      lineage: [],
-      interactionLogFile: null,
-      ...p,
-    }));
-  } catch {
-    return memoryPatterns;
-  }
+async function setPatterns(patterns) {
+  memoryPatterns = patterns;
 }
 
-async function setPatterns(store, patterns) {
-  if (!store) {
-    memoryPatterns = patterns;
-    return;
-  }
-  try {
-    await store.set(STORE_KEY, JSON.stringify(patterns));
-  } catch {
-    memoryPatterns = patterns;
-  }
+async function getInteractionLog(id) {
+  return memoryLogs.get(id) ?? null;
 }
 
-async function getInteractionLog(store, id) {
-  if (!store) return memoryLogs.get(id) ?? null;
-  try {
-    const raw = await store.get(`log:${id}`, { type: "text" });
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return memoryLogs.get(id) ?? null;
-  }
-}
-
-async function setInteractionLog(store, id, log) {
-  if (!store) {
-    memoryLogs.set(id, log);
-    return;
-  }
-  try {
-    await store.set(`log:${id}`, JSON.stringify(log));
-  } catch {
-    memoryLogs.set(id, log);
-  }
+async function setInteractionLog(id, log) {
+  memoryLogs.set(id, log);
 }
 
 function cleanPoint(point) {
@@ -202,21 +160,20 @@ export const handler = async (event) => {
     return { statusCode: 204, headers: HEADERS, body: "" };
   }
 
-  const store = connectStore(event);
   const isLog = event.path === "/api/logs" || event.rawUrl?.includes("/api/logs");
 
   // GET /api/logs?id=xxx — serve a stored interaction log
   if (isLog && event.httpMethod === "GET") {
     const id = event.queryStringParameters?.id;
     if (!id) return respond(400, { error: "Missing id." });
-    const log = await getInteractionLog(store, id);
+    const log = await getInteractionLog(id);
     if (!log) return respond(404, { error: "Log not found." });
     return respond(200, log);
   }
 
   // GET /api/patterns
   if (event.httpMethod === "GET") {
-    const patterns = await getPatterns(store);
+    const patterns = await getPatterns();
     return respond(200, patterns);
   }
 
@@ -233,13 +190,13 @@ export const handler = async (event) => {
 
     // Save interaction log as separate blob
     if (next.interactionLog) {
-      await setInteractionLog(store, next.id, next.interactionLog);
+      await setInteractionLog(next.id, next.interactionLog);
       delete next.interactionLog;
     }
 
-    const patterns = await getPatterns(store);
+    const patterns = await getPatterns();
     patterns.unshift(next);
-    await setPatterns(store, patterns);
+    await setPatterns(patterns);
     return respond(201, next);
   }
 
