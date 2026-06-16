@@ -282,10 +282,10 @@
   .ghost-button:hover { color:rgba(255,255,255,.7); }
   .phase-row { display:flex; align-items:center; gap:16px; }
   .phase-label {
-    font-size:13px;
+    font-size:16px;
     font-weight:500;
-    color:rgba(255,255,255,.55);
-    letter-spacing:-.01em;
+    color:rgba(255,255,255,.82);
+    letter-spacing:0;
   }
   .timer {
     font-size:13px;
@@ -659,7 +659,7 @@
       </details>
     </div>
     <div class="start-row">
-      <button id="begin-button" class="primary-pill">Begin Practice</button>
+      <button id="begin-button" class="primary-pill">Begin</button>
     </div>
     <p class="section-label">Practices</p>
     <div id="collection-grid" class="collection-grid" aria-live="polite"></div>
@@ -673,20 +673,17 @@
         </svg>
         Back
       </button>
-      <div class="phase-row">
-        <span id="phase-label" class="phase-label">Breathe In</span>
-        <span id="session-timer" class="timer">00:00</span>
-      </div>
+      <span id="session-timer" class="ghost-button" style="cursor:default">1 breath</span>
     </div>
     <div id="p5-canvas" class="canvas-area" aria-label="Interactive 23 by 23 p5 ornament canvas">
-      <div id="tap-prompt" class="tap-prompt">Tap to begin</div>
     </div>
+    <span id="phase-label" class="phase-label">Breathe In</span>
     <div id="canvas-hint" class="canvas-hint">Create a point to start. When symmetry completes, add more points or complete the practice.</div>
     <div class="breath-controls">
       <input id="inhale-input" class="breath-value" type="number" min="1" max="30" step="0.5" value="5" aria-hidden="true" tabindex="-1">
       <input id="exhale-input" class="breath-value" type="number" min="1" max="30" step="0.5" value="5" aria-hidden="true" tabindex="-1">
       <button id="clear-button" class="subtle-pill" type="button">Clear</button>
-      <button id="end-button" class="subtle-pill hidden" type="button">Complete</button>
+      <button id="end-button" class="subtle-pill hidden" type="button">Done</button>
     </div>
   </section>
 
@@ -1196,12 +1193,11 @@
   }
 
   function syncPracticeUi() {
-    tapPrompt.classList.toggle("hidden", practiceStarted || paintedCount() > 0);
     endButton.classList.toggle("hidden", !symmetryComplete);
     endButton.classList.toggle("complete-pill", symmetryComplete);
     clearButton.classList.toggle("hidden", symmetryComplete || !!sourcePractice);
-    phaseLabel.textContent = symmetryComplete ? "Complete" : running ? phaseInfo().name : "Tap to begin";
-    sessionTimer.textContent = formatTimer(elapsed);
+    phaseLabel.textContent = symmetryComplete ? "Complete" : running ? phaseInfo().name : "Draw to begin";
+    sessionTimer.textContent = breathCountText();
     canvasHint.textContent = symmetryComplete
       ? "Symmetry is complete. Add another point to continue, or press Complete."
       : symmetrySettling
@@ -1319,7 +1315,7 @@
     elapsed = endingThisFrame ? Math.max(previousElapsed, settleUntil - 0.001) : previousElapsed + dt;
     const info = phaseInfo();
     phaseLabel.textContent = info.name;
-    sessionTimer.textContent = formatTimer(elapsed);
+    sessionTimer.textContent = breathCountText();
     const target = densityTarget();
     const centerEase = 1 - Math.pow(.02, dt);
     circleCenter.x += (target.x - circleCenter.x) * centerEase;
