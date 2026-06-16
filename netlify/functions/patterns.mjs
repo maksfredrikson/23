@@ -1,4 +1,4 @@
-import { getStore } from "@netlify/blobs";
+import { connectLambda, getStore } from "@netlify/blobs";
 
 const STORE_KEY = "all";
 
@@ -147,6 +147,8 @@ function cleanPattern(input) {
 }
 
 export const handler = async (event) => {
+  connectLambda(event);
+
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 204, headers: HEADERS, body: "" };
   }
