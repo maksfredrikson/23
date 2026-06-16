@@ -82,6 +82,32 @@
     line-height:1.72;
     letter-spacing:0;
   }
+  .more-info {
+    max-width:620px;
+    margin:16px 0 34px;
+    color:rgba(255,255,255,.36);
+    font-size:13px;
+    line-height:1.7;
+  }
+  .more-info summary {
+    width:max-content;
+    cursor:pointer;
+    color:rgba(255,255,255,.72);
+    font-size:13px;
+    font-weight:500;
+    list-style:none;
+  }
+  .more-info summary::-webkit-details-marker { display:none; }
+  .more-info summary::after {
+    content:"+";
+    margin-left:8px;
+    color:rgba(255,255,255,.34);
+  }
+  .more-info[open] summary::after { content:"-"; }
+  .more-info p {
+    margin:12px 0 0;
+  }
+  .start-row { margin-bottom:36px; }
   .chips { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:32px; }
   .chip {
     padding:7px 16px;
@@ -124,6 +150,11 @@
     box-shadow:none;
   }
   .primary-pill:not(:disabled):hover { opacity:.88; }
+  #begin-button {
+    padding:20px 56px;
+    font-size:28px;
+    box-shadow:0 4px 36px rgba(255,255,255,.16);
+  }
   .section-label {
     margin:0 0 18px;
     font-size:10px;
@@ -621,14 +652,14 @@
     <div class="header">
       <p class="eyebrow">The Breathing App</p>
       <h1>Breath in Practice</h1>
-      <p class="intro-copy">An abstract instrument for the breath. There are no counts and no numbers — you choose an intention and follow the form as it opens and settles. You are free to mark the field whenever you like; the machine takes its own time to reflect your marks and balance the composition around them. A first touchpoint for a practice that gathers, over time, into a small library of its own.</p>
+      <p class="intro-copy">Breathe in and breathe out with the rhythm of the pattern. Follow the form as it opens and settles, and mark the field whenever the breath invites it.</p>
+      <details class="more-info">
+        <summary>More Info</summary>
+        <p>An abstract instrument for the breath. There are no counts and no numbers — you choose an intention and follow the form as it opens and settles. You are free to mark the field whenever you like; the machine takes its own time to reflect your marks and balance the composition around them. A first touchpoint for a practice that gathers, over time, into a small library of its own.</p>
+      </details>
     </div>
-    <p class="section-label">01 — Choose an intention</p>
-    <div class="chips" role="group" aria-label="Breathing rate">
-      <button class="chip active" data-pattern="resonance">Resonance</button>
-      <button class="chip" data-pattern="relax">Relax</button>
-      <button class="chip" data-pattern="calm">Calm</button>
-      <button id="begin-button" class="primary-pill">Begin</button>
+    <div class="start-row">
+      <button id="begin-button" class="primary-pill">Begin Practice</button>
     </div>
     <p class="section-label">Practices</p>
     <div id="collection-grid" class="collection-grid" aria-live="polite"></div>
