@@ -1,5 +1,6 @@
 [build]
-  publish = "."
+  command = "pnpm build"
+  publish = "dist"
 
 [functions]
   node_bundler = "esbuild"
@@ -15,4 +16,3 @@
   to = "/.netlify/functions/patterns"
   status = 200
   force = true
-
