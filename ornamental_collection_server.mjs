@@ -115,7 +115,7 @@ function cleanPattern(input) {
     durationSeconds: Math.max(0, Math.floor(Number(input.durationSeconds) || 0)),
     sourcePracticeId,
     lineage,
-    interactionLogFile: input.interactionLog ? `server-data/interaction-logs/${id}.json` : null,
+    interactionLogFile: input.interactionLog ? `/api/logs?id=${id}` : null,
     interactionLog: cleanInteractionLog(input.interactionLog, { id, sourcePracticeId, lineage }),
     ascii,
     publishedAt: new Date().toISOString(),
@@ -168,6 +168,15 @@ createServer(async (req, res) => {
 
     if (url.pathname === "/api/patterns" && req.method === "GET") {
       return send(res, 200, await readPatterns());
+    }
+
+    if (url.pathname === "/api/logs" && req.method === "GET") {
+      const id = url.searchParams.get("id");
+      if (!id) return send(res, 400, { error: "Missing id." });
+      const logPath = join(logsDir, `${id}.json`);
+      if (!existsSync(logPath)) return send(res, 404, { error: "Log not found." });
+      const raw = await readFile(logPath, "utf8");
+      return send(res, 200, raw, "application/json; charset=utf-8");
     }
 
     if (url.pathname === "/api/patterns" && req.method === "POST") {

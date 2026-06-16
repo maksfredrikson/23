@@ -1,7 +1,22 @@
 [
   {
+    "id": "pattern-1781559391030-56e5d9",
+    "title": "Untitled",
+    "description": "",
+    "patternId": "resonance",
+    "inhale": 5,
+    "exhale": 5,
+    "durationSeconds": 20,
     "sourcePracticeId": null,
     "lineage": [],
+    "interactionLogFile": "/api/logs?id=pattern-1781559391030-56e5d9",
+    "ascii": ".......................\n.......................\n.......................\n.......................\n.......................\n.......................\n.......................\n.......................\n.......................\n.......................\n..........#.#..........\n.......................\n..........#.#..........\n.......................\n.......................\n.......................\n.......................\n.......................\n.......................\n.......................\n.......................\n.......................\n.......................",
+    "publishedAt": "2026-06-15T21:36:31.030Z"
+  },
+  {
+    "sourcePracticeId": null,
+    "lineage": [],
+    "interactionLogFile": null,
     "id": "pattern-1781541108286-00e58e",
     "title": "Bow",
     "description": "",
@@ -15,6 +30,7 @@
   {
     "sourcePracticeId": null,
     "lineage": [],
+    "interactionLogFile": null,
     "id": "pattern-1781540993602-663545",
     "title": "Home",
     "description": "",
@@ -28,6 +44,7 @@
   {
     "sourcePracticeId": null,
     "lineage": [],
+    "interactionLogFile": null,
     "id": "seed-morning-flow",
     "title": "Morning Flow",
     "description": "Start in coherence",

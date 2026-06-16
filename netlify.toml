@@ -10,3 +10,9 @@
   status = 200
   force = true
 
+[[redirects]]
+  from = "/api/logs"
+  to = "/.netlify/functions/patterns"
+  status = 200
+  force = true
+

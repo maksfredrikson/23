@@ -4,7 +4,49 @@ const STORE_KEY = "all";
 
 const seed = [
   {
-    id: "local-seed",
+    id: "pattern-1781559391030-56e5d9",
+    title: "Untitled",
+    description: "",
+    patternId: "resonance",
+    inhale: 5,
+    exhale: 5,
+    durationSeconds: 20,
+    sourcePracticeId: null,
+    lineage: [],
+    interactionLogFile: null,
+    ascii: ".......................\n.......................\n.......................\n.......................\n.......................\n.......................\n.......................\n.......................\n.......................\n.......................\n..........#.#..........\n.......................\n..........#.#..........\n.......................\n.......................\n.......................\n.......................\n.......................\n.......................\n.......................\n.......................\n.......................\n.......................",
+    publishedAt: "2026-06-15T21:36:31.030Z",
+  },
+  {
+    id: "pattern-1781541108286-00e58e",
+    title: "Bow",
+    description: "",
+    patternId: "resonance",
+    inhale: 5,
+    exhale: 5,
+    durationSeconds: 38,
+    sourcePracticeId: null,
+    lineage: [],
+    interactionLogFile: null,
+    ascii: ".......................\n.......................\n.......................\n.......................\n.......................\n......#.#..#..#.#......\n........#.###.#........\n......#.##...##.#......\n.......#...#...#.......\n......#..#...#..#......\n.....#..#.....#..#.....\n......#...#.#...#......\n.....#..#.....#..#.....\n......#..#...#..#......\n.......#...#...#.......\n......#.##...##.#......\n........#.###.#........\n......#.#..#..#.#......\n.......................\n.......................\n.......................\n.......................\n.......................",
+    publishedAt: "2026-06-15T16:31:48.286Z",
+  },
+  {
+    id: "pattern-1781540993602-663545",
+    title: "Home",
+    description: "",
+    patternId: "resonance",
+    inhale: 5,
+    exhale: 5,
+    durationSeconds: 12,
+    sourcePracticeId: null,
+    lineage: [],
+    interactionLogFile: null,
+    ascii: ".......................\n.......................\n.......................\n.......................\n.......................\n.......................\n.......................\n.........#...#.........\n.......#.......#.......\n.........#...#.........\n.......................\n..........#.#..........\n.......................\n.........#...#.........\n.......#.......#.......\n.........#...#.........\n.......................\n.......................\n.......................\n.......................\n.......................\n.......................\n.......................",
+    publishedAt: "2026-06-15T16:29:53.602Z",
+  },
+  {
+    id: "seed-morning-flow",
     title: "Morning Flow",
     description: "Start in coherence",
     patternId: "resonance",
@@ -14,8 +56,7 @@ const seed = [
     sourcePracticeId: null,
     lineage: [],
     interactionLogFile: null,
-    ascii:
-      ".......................\n.......................\n.......................\n.......................\n...........#...........\n...........#...........\n...........#...........\n.......................\n......###.....###......\n.......................\n.......................\n....###...###...###....\n.......................\n.......................\n......###.....###......\n.......................\n...........#...........\n...........#...........\n...........#...........\n.......................\n.......................\n.......................\n.......................",
+    ascii: ".......................\n.......................\n.......................\n.......................\n...........#...........\n...........#...........\n...........#...........\n.......................\n......###.....###......\n.......................\n.......................\n....###...###...###....\n.......................\n.......................\n......###.....###......\n.......................\n...........#...........\n...........#...........\n...........#...........\n.......................\n.......................\n.......................\n.......................",
     publishedAt: "2026-06-15T00:00:00.000Z",
   },
 ];
@@ -42,6 +83,32 @@ async function getPatterns(store) {
   }));
 }
 
+function cleanPoint(point) {
+  return {
+    x: Math.max(0, Math.min(22, Math.floor(Number(point?.x) || 0))),
+    y: Math.max(0, Math.min(22, Math.floor(Number(point?.y) || 0))),
+  };
+}
+
+function cleanInteractionLog(input, meta) {
+  const cycles = Array.isArray(input?.cycles) ? input.cycles : [];
+  return {
+    version: 1,
+    practiceId: meta.id,
+    sourcePracticeId: meta.sourcePracticeId,
+    lineage: meta.lineage,
+    cycles: cycles.slice(0, 200).map(cycle => ({
+      cycle: Math.max(1, Math.floor(Number(cycle?.cycle) || 1)),
+      userAddedPoints: Array.isArray(cycle?.userAddedPoints)
+        ? cycle.userAddedPoints.slice(0, 200).map(cleanPoint)
+        : [],
+      algorithmChangedPoints: Array.isArray(cycle?.algorithmChangedPoints)
+        ? cycle.algorithmChangedPoints.slice(0, 200).map(p => ({ ...cleanPoint(p), target: p?.target === 0 ? 0 : 1 }))
+        : [],
+    })).filter(c => c.userAddedPoints.length || c.algorithmChangedPoints.length),
+  };
+}
+
 function cleanPattern(input) {
   const id = `pattern-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
   const title = String(input.title || "").trim().slice(0, 80);
@@ -59,6 +126,7 @@ function cleanPattern(input) {
     .map(line => line.replace(/[^#.]/g, "").slice(0, 23).padEnd(23, "."))
     .join("\n");
   if (!title || !ascii) return null;
+  const hasLog = input.interactionLog?.cycles?.length > 0;
   return {
     id,
     title,
@@ -71,7 +139,8 @@ function cleanPattern(input) {
     durationSeconds: Math.max(0, Math.floor(Number(input.durationSeconds) || 0)),
     sourcePracticeId,
     lineage,
-    interactionLogFile: null,
+    interactionLogFile: hasLog ? `/api/logs?id=${id}` : null,
+    interactionLog: hasLog ? cleanInteractionLog(input.interactionLog, { id, sourcePracticeId, lineage }) : null,
     ascii,
     publishedAt: new Date().toISOString(),
   };
@@ -83,12 +152,24 @@ export const handler = async (event) => {
   }
 
   const store = getStore({ name: "patterns", consistency: "strong" });
+  const isLog = event.path === "/api/logs" || event.rawUrl?.includes("/api/logs");
 
+  // GET /api/logs?id=xxx — serve a stored interaction log
+  if (isLog && event.httpMethod === "GET") {
+    const id = event.queryStringParameters?.id;
+    if (!id) return respond(400, { error: "Missing id." });
+    const raw = await store.get(`log:${id}`, { type: "text" });
+    if (!raw) return respond(404, { error: "Log not found." });
+    return respond(200, JSON.parse(raw));
+  }
+
+  // GET /api/patterns
   if (event.httpMethod === "GET") {
     const patterns = await getPatterns(store);
     return respond(200, patterns);
   }
 
+  // POST /api/patterns
   if (event.httpMethod === "POST") {
     let body;
     try {
@@ -98,6 +179,13 @@ export const handler = async (event) => {
     }
     const next = cleanPattern(body);
     if (!next) return respond(400, { error: "Title and ASCII pattern are required." });
+
+    // Save interaction log as separate blob
+    if (next.interactionLog) {
+      await store.set(`log:${next.id}`, JSON.stringify(next.interactionLog));
+      delete next.interactionLog;
+    }
+
     const patterns = await getPatterns(store);
     patterns.unshift(next);
     await store.set(STORE_KEY, JSON.stringify(patterns));
