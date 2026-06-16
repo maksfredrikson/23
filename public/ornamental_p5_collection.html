@@ -1694,6 +1694,7 @@
         return false;
       };
       p.touchEnded = () => {
+        if (screens.breathe.classList.contains("hidden")) return;
         if (!onCanvas()) return;
         ignoreMouseUntil = performance.now() + 700;
         strokeEnd();
