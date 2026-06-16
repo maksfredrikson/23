@@ -724,7 +724,13 @@
         <p id="evolution-title" class="modal-title">Pattern evolution</p>
         <p id="evolution-meta" class="modal-meta"></p>
       </div>
-      <button id="evolution-close" class="modal-close" type="button" aria-label="Close preview">×</button>
+      <div style="display:flex;align-items:center;gap:8px;position:relative">
+        <button id="more-button" class="modal-close" type="button" aria-label="More options">···</button>
+        <div id="more-menu" class="hidden" style="position:absolute;top:calc(100% + 8px);right:0;background:rgba(30,30,40,.98);border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden;min-width:180px;z-index:10">
+          <button id="delete-button" class="subtle-pill" type="button" style="width:100%;border-radius:0;border:none;text-align:left;padding:12px 18px">Delete ornament</button>
+        </div>
+        <button id="evolution-close" class="modal-close" type="button" aria-label="Close preview">×</button>
+      </div>
     </div>
     <div id="evolution-preview" class="evolution-preview" aria-label="Animated pattern evolution preview"></div>
   </div>
@@ -778,6 +784,9 @@
   const evolutionTitle = $("#evolution-title");
   const evolutionMeta = $("#evolution-meta");
   const evolutionPreview = $("#evolution-preview");
+  const deleteButton = $("#delete-button");
+  const moreButton = $("#more-button");
+  const moreMenu = $("#more-menu");
 
   let selectedPattern = "resonance";
   let selectedPractice = null;
@@ -800,6 +809,7 @@
   let previewSketch = null;
   let evolutionSketch = null;
   let evolutionFrames = [];
+  let evolutionItem = null;
   let circleCenter = { x:.5, y:.5 };
   let interactionCycles = [];
 
@@ -1123,6 +1133,14 @@
   });
 
   evolutionClose.addEventListener("click", closeEvolutionModal);
+  moreButton.addEventListener("click", () => moreMenu.classList.toggle("hidden"));
+  deleteButton.addEventListener("click", () => {
+    if (!evolutionItem) return;
+    collection = collection.filter(p => p.id !== evolutionItem.id);
+    moreMenu.classList.add("hidden");
+    closeEvolutionModal();
+    renderCollection();
+  });
   evolutionModal.addEventListener("click", event => {
     if (event.target === evolutionModal) closeEvolutionModal();
   });
@@ -1539,7 +1557,7 @@
       p.draw = () => {
         const side = Math.min(feedbackPreview.clientWidth || 320, feedbackPreview.clientHeight || 320);
         if (p.width !== side) p.resizeCanvas(side, side);
-        drawOrnament(p, p.finalGrid, null, "rgba(255,255,255,.72)", false);
+        drawOrnament(p, p.finalGrid, null, "rgba(255,255,255,.72)", true);
       };
     });
   }
@@ -1602,6 +1620,7 @@
   }
 
   async function openEvolutionModal(item) {
+    evolutionItem = item;
     evolutionTitle.textContent = item.title || "Untitled";
     evolutionMeta.textContent = `${patternName(item.patternId)} · ${breathCountFromSeconds(item.durationSeconds, item.patternId, item.inhale, item.exhale)}`;
     evolutionModal.classList.remove("hidden");
@@ -1633,6 +1652,7 @@
 
   function closeEvolutionModal() {
     evolutionModal.classList.add("hidden");
+    moreMenu.classList.add("hidden");
   }
 
   function ensureSketch() {
